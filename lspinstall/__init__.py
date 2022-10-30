@@ -1,8 +1,16 @@
 from pathlib import Path
 
-home = Path.home()
-cache = home / ".cache"
-local_bin = home / ".local" / "bin"
+
+def _home():
+    return Path.home()
+
+
+def cache() -> Path:
+    return _home() / ".cache"
+
+
+def local_bin() -> Path:
+    return _home() / ".local" / "bin"
 
 
 def color(*codes):

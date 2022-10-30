@@ -16,29 +16,27 @@ def handle_list(_):
 
 def handle_install(args):
     for name in args.server:
-        if not name in lang_servers_dict:
+        if name not in lang_servers_dict:
             print(f"unknown server name: {name}")
             return
 
         server = lang_servers_dict[name]
         if server.installed():
-            print(f"{server.name} already installed, use 'update'.")
+            print(f"{server.name} already installed, use 'update'")
             return
 
         print(f"Installing {green(server.name)} ...")
         server.install()
-        print(f"Installed {green(server.name)}")
 
 
 def handle_update(args):
     server = lang_servers_dict[args.server]
     if not server.installed():
-        print(f"{server.name} is not installed, use 'install'.")
+        print(f"{server.name} is not installed, use 'install'")
         return
 
     print(f"Updating {green(server.name)} ...")
     server.update()
-    print(f"Updated {green(server.name)}")
 
 
 def main():
@@ -88,10 +86,12 @@ def main():
     logging.debug(f"User arguments: {args}")
 
     try:
-        if not cache.exists():
-            cache.mkdir()
-        if not local_bin.exists():
-            local_bin.mkdir()
+        cache_dir = cache()
+        local_bin_dir = local_bin()
+        if not cache_dir.exists():
+            cache_dir.mkdir()
+        if not local_bin_dir.exists():
+            local_bin_dir.mkdir()
 
         level = logging.CRITICAL
         if args.vv:
@@ -102,6 +102,7 @@ def main():
 
         args.cb(args)
     except subprocess.CalledProcessError as e:
+        logging.exception(e)
         print(
             f"{red('error')}: '{' '.join(e.args)}' failed with exit status {e.returncode}:\n{e.stderr}"
         )

@@ -6,7 +6,7 @@ from lspinstall.util import execute
 from .base import Source
 
 
-class NPMRegistry:
+class _NPMRegistry:
     """Used to lookup packages installed with npm."""
 
     def __init__(self):
@@ -20,8 +20,8 @@ class NPMRegistry:
         return self._registry.get(pkg)
 
 
-class NPM(Source):
-    _registry = NPMRegistry()
+class _NPM(Source):
+    _registry = _NPMRegistry()
 
     def __init__(self, name: str, pkg: str = "", requires: list[str] = None):  # type: ignore
         super().__init__(name)
@@ -41,3 +41,14 @@ class NPM(Source):
 
     def update(self):
         self._cmd("update")
+
+
+pyright = _NPM("pyright")
+tsserver = _NPM("tsserver", "typescript-language-server", requires=["typescript"])
+vscode_langservers_extracted = _NPM(
+    "vscode-langservers-extracted",
+)
+bashls = _NPM("bashls", "bash-language-server")
+yamlls = _NPM("yamlls", "yaml-language-server")
+graphql_lsp = _NPM("graphql-lsp", "graphql-language-service-cli")
+awk_ls = _NPM("awk_ls", "awk-language-server")

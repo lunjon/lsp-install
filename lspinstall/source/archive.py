@@ -10,11 +10,14 @@ from typing import Callable, Literal, Optional
 import requests
 
 from .base import Source
+from lspinstall.util import make_executable
+from lspinstall import cache, local_bin
 
 FinalizeFunc = Callable[[Path], None]
+ArchiveType = Literal["zip", "tar.gz", "gz"]
 
 
-class Archive(Source):
+class _Archive(Source):
     """Target that install/updates from an archive file, e.g. zip file."""
 
     def __init__(
@@ -22,7 +25,7 @@ class Archive(Source):
         name: str,
         destination: Path,
         url: str,
-        archive_type: Literal["zip", "tar.gz", "gz"],
+        archive_type: ArchiveType,
         finalize: Optional[FinalizeFunc] = None,
     ):
         super().__init__(name)
@@ -55,17 +58,20 @@ class Archive(Source):
                 total_written += f.write(ch)
         logging.debug(f"Wrote {total_written} bytes to {outfile}")
 
-        if self._type == "zip":
-            with zipfile.ZipFile(outfile) as z:
-                z.extractall(dest)
-        elif self._type == "gz":
-            with gzip.open(outfile, "rb") as z:
-                with open(dest, "wb") as f:
-                    copyfileobj(z, f)
-        else:
-            tarball = tarfile.open(outfile)
-            tarball.extractall(dest)
-            tarball.close()
+        match self._type:
+            case "zip":
+                with zipfile.ZipFile(outfile) as z:
+                    z.extractall(dest)
+            case "gz":
+                with gzip.open(outfile, "rb") as z:
+                    with open(dest, "wb") as f:
+                        copyfileobj(z, f)
+            case "tar.gz":
+                tarball = tarfile.open(outfile)
+                tarball.extractall(dest)
+                tarball.close()
+            case _:
+                raise Exception(f"unknown archive type: {self._type}")
 
         if outfile.exists():
             os.unlink(outfile)
@@ -77,3 +83,87 @@ class Archive(Source):
 
     def update(self):
         self.install()
+
+
+def _finalize_elixirls(dest: Path):
+    shell_bin = dest / "language_server.sh"
+    make_executable(shell_bin)
+    make_executable(dest / "launch.sh")
+    bin = local_bin() / "elixir-ls"
+    with open(bin, "w") as f:
+        f.write("#!/usr/bin/env bash\n")
+        f.write('exec "')
+        f.write(str(shell_bin))
+        f.write('" "$@"')
+
+    make_executable(shell_bin)
+    make_executable(bin)
+    make_executable(dest / "launch.sh")
+
+
+def _finalize_sumneko(dest: Path):
+    bin = local_bin() / "lua-language-server"
+    with open(bin, "w") as f:
+        f.write("#!/bin/bash\n")
+        f.write('exec "')
+        f.write(str(dest / "bin" / "lua-language-server"))
+        f.write('" "$@"')
+    make_executable(bin)
+
+
+def _finalize_bicep(dest: Path):
+    bin = local_bin() / "bicep-langserver"
+    dll = dest / "Bicep.LangServer.dll"
+    with open(bin, "w") as f:
+        f.write("#!/bin/bash\n")
+        f.write("exec dotnet ")
+        f.write(str(dll))
+    make_executable(bin)
+
+
+def _make_exec(ext: str):
+    def f(dest: Path):
+        make_executable(dest / ext)
+
+    return f
+
+
+_urls = {
+    "sumneko": "https://github.com/sumneko/lua-language-server/releases/download/3.5.5/lua-language-server-3.5.5-linux-x64.tar.gz",
+    "bicep": "https://github.com/Azure/bicep/releases/download/v0.8.9/bicep-langserver.zip",
+    # TODO: use rustup and add as component (added as of rust 1.64)
+    "rust-analyzer": "https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz",
+    "omnisharp": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.38.2/omnisharp-linux-x64.zip",
+    "elixirls": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls.zip",
+}
+
+
+sumneko = _Archive(
+    "sumneko", cache() / "sumneko-lua", _urls["sumneko"], "tar.gz", _finalize_sumneko
+)
+
+bicep = _Archive(
+    "bicep",
+    cache() / "bicep-langserver",
+    _urls["bicep"],
+    "zip",
+    finalize=_finalize_bicep,
+)
+rust_analuzer = _Archive(
+    "rust-analyzer",
+    local_bin() / "rust-analyzer",
+    _urls["rust-analyzer"],
+    "gz",
+    finalize=make_executable,
+)
+omnisharp = _Archive(
+    "omnisharp", cache() / "omnisharp", _urls["omnisharp"], "zip", _make_exec("run")
+)
+
+elixirls = _Archive(
+    "elixirls",
+    cache() / "elixirls",
+    _urls["elixirls"],
+    "zip",
+    finalize=_finalize_elixirls,
+)

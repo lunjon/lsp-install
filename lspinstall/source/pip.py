@@ -3,7 +3,7 @@ from lspinstall.util import execute, has_command
 from .base import Source
 
 
-class PythonPip(Source):
+class _PythonPip(Source):
     def __init__(self, name: str, command_name: str, pkg: str):
         super().__init__(name)
         self._command_name = command_name
@@ -24,3 +24,6 @@ class PythonPip(Source):
 
     def update(self):
         self._cmd(True)
+
+
+pylsp = _PythonPip("pylsp", "pylsp", "python-lsp-server[all]")

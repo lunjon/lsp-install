@@ -3,7 +3,7 @@ from lspinstall.util import execute, has_command
 from .base import Source
 
 
-class GoPackage(Source):
+class _GoPackage(Source):
     def __init__(self, name: str, mod: str):
         super().__init__(name)
         self._mod = (
@@ -19,3 +19,6 @@ class GoPackage(Source):
 
     def update(self):
         return self.install()
+
+
+gopls = _GoPackage("gopls", "golang.org/x/tools/gopls")
