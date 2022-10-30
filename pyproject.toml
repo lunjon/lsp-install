@@ -7,5 +7,8 @@ name = "lspinstall"
 version = "0.4.0"
 dependencies = [ "requests" ]
 
+[project.optional-dependencies]
+dev = ["pip-tools", "pytest", "black", "isort"]
+
 [project.scripts]
 lspinstall = "lspinstall.main:main"
