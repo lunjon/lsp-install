@@ -85,6 +85,14 @@ class _Archive(Source):
         self.install()
 
 
+def _create_bash_script(name: str, content: str):
+    bin = local_bin() / name
+    with open(bin, "w") as f:
+        f.write("#!/usr/bin/env bash\n")
+        f.write(content)
+    make_executable(bin)
+
+
 def _finalize_elixirls(dest: Path):
     shell_bin = dest / "language_server.sh"
     make_executable(shell_bin)
@@ -102,23 +110,24 @@ def _finalize_elixirls(dest: Path):
 
 
 def _finalize_sumneko(dest: Path):
-    bin = local_bin() / "lua-language-server"
-    with open(bin, "w") as f:
-        f.write("#!/bin/bash\n")
-        f.write('exec "')
-        f.write(str(dest / "bin" / "lua-language-server"))
-        f.write('" "$@"')
-    make_executable(bin)
+    path = dest / "bin" / "lua-language-server"
+    args = '"$@"'
+    content = f"""exec {path.absolute()} {args}"""
+    _create_bash_script("lua-language-server", content)
 
 
 def _finalize_bicep(dest: Path):
-    bin = local_bin() / "bicep-langserver"
     dll = dest / "Bicep.LangServer.dll"
-    with open(bin, "w") as f:
-        f.write("#!/bin/bash\n")
-        f.write("exec dotnet ")
-        f.write(str(dll))
-    make_executable(bin)
+    content = f"exec dotnet {dll.absolute()}"
+    _create_bash_script("bicep-langserver", content)
+
+
+def _finalize_omnisharp(dest: Path):
+    script = dest / "run"
+    make_executable(script)
+    args = '"$@"'
+    content = f"exec {script.absolute()} {args}"
+    _create_bash_script("OmniSharp", content)
 
 
 def _make_exec(ext: str):
@@ -149,6 +158,7 @@ bicep = _Archive(
     "zip",
     finalize=_finalize_bicep,
 )
+
 rust_analuzer = _Archive(
     "rust-analyzer",
     local_bin() / "rust-analyzer",
@@ -156,8 +166,13 @@ rust_analuzer = _Archive(
     "gz",
     finalize=make_executable,
 )
+
 omnisharp = _Archive(
-    "omnisharp", cache() / "omnisharp", _urls["omnisharp"], "zip", _make_exec("run")
+    "omnisharp",
+    cache() / "omnisharp",
+    _urls["omnisharp"],
+    "zip",
+    finalize=_finalize_omnisharp,
 )
 
 elixirls = _Archive(
