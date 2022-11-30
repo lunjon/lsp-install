@@ -1,15 +1,15 @@
-all: fmt test
+all: check fmt test
 
 test:
     python -m pytest lspinstall
 
 fmt:
-    python -m black lspinstall
-    python -m isort lspinstall
+    black lspinstall
+    isort lspinstall
 
 pip-compile:
     pip-compile -o requirements.txt pyproject.toml
     pip-compile --extra dev -o dev-requirements.txt pyproject.toml
 
-install:
-    python -m pip install --upgrade .
+check:
+    flake8 ./lspinstall

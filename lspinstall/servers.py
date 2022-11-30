@@ -1,22 +1,22 @@
-from .source.npm import *
-from .source.go import *
-from .source.pip import *
-from .source.archive import *
+from .source import npm
+from .source import go
+from .source import pip
+from .source import archive
 
 
 lang_servers = [
-    sumneko,
-    bicep,
-    rust_analuzer,
-    omnisharp,
-    elixirls,
-    pylsp,
-    gopls,
-    tsserver,
-    vscode_langservers_extracted,
-    bashls,
-    yamlls,
-    awk_ls,
+    archive.sumneko,
+    archive.bicep,
+    archive.rust_analuzer,
+    archive.omnisharp,
+    archive.elixirls,
+    pip.pylsp,
+    go.gopls,
+    npm.tsserver,
+    npm.vscode_langservers_extracted,
+    npm.bashls,
+    npm.yamlls,
+    npm.awk_ls,
 ]
 
 lang_servers_dict = {s.name: s for s in lang_servers}

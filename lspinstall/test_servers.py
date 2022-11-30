@@ -1,4 +1,3 @@
-from .servers import sumneko
 from pathlib import Path
 import pytest
 
