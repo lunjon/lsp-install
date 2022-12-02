@@ -10,6 +10,7 @@ lang_servers = [
     archive.rust_analuzer,
     archive.omnisharp,
     archive.elixirls,
+    archive.clojure_lsp,
     pip.pylsp,
     go.gopls,
     npm.tsserver,

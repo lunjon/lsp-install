@@ -7,7 +7,7 @@ Python script for installing LSP servers - with minial dependencies.
 Install the package and invoke it:
 
 ```bash
-python -m pip --upgrade install .
+python -m pip install --upgrade .
 lspinstall -h
 ```
 

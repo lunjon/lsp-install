@@ -4,7 +4,7 @@ import os
 import tarfile
 import zipfile
 from pathlib import Path
-from shutil import copyfileobj, rmtree
+from shutil import copyfileobj
 from typing import Callable, Literal, Optional
 
 import requests
@@ -23,33 +23,33 @@ class _Archive(Source):
     def __init__(
         self,
         name: str,
-        destination: Path,
-        url: str,
         archive_type: ArchiveType,
+        url: str,
+        destination_dir: Path,
+        *,
+        extra_path: Optional[str] = None,
         finalize: Optional[FinalizeFunc] = None,
     ):
         super().__init__(name)
-        self._dest = destination
+        self._dest_dir = destination_dir
+        self._extra_path = extra_path
         self._url = url
         self._type = archive_type
         self._finalize = finalize
 
     def installed(self) -> bool:
-        return self._dest.exists()
+        return False
 
     def install(self):
-        dest = self._dest
-        if dest.exists():
-            logging.info(f"Destination {dest} already exists, removing")
-            if dest.is_dir():
-                rmtree(dest)
-                dest.mkdir()
-            else:
-                os.remove(dest)
+        dest_dir = self._dest_dir
+        if not dest_dir.exists():
+            dest_dir.mkdir(parents=True, exist_ok=True)
 
         res = requests.get(self._url)
         logging.info(f"GET {self._url} responded with status {res.status_code}")
         res.raise_for_status()
+
+        dest = dest_dir / self._extra_path if self._extra_path else dest_dir
 
         outfile = Path(f"tmp.{self._type}")
         total_written = 0
@@ -133,7 +133,6 @@ def _finalize_omnisharp(dest: Path):
 def _make_exec(ext: str):
     def f(dest: Path):
         make_executable(dest / ext)
-
     return f
 
 
@@ -144,41 +143,57 @@ _urls = {
     "rust-analyzer": "https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz",
     "omnisharp": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.38.2/omnisharp-linux-x64.zip",
     "elixirls": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls.zip",
+    "clojure_lsp": "https://github.com/clojure-lsp/clojure-lsp/releases/download/2022.11.03-00.14.57/clojure-lsp-native-static-linux-amd64.zip",
 }
 
-
 sumneko = _Archive(
-    "sumneko", cache() / "sumneko-lua", _urls["sumneko"], "tar.gz", _finalize_sumneko
+    "sumneko",
+    "tar.gz",
+    _urls["sumneko"],
+    cache(),
+    extra_path="sumneko-lua",
+    finalize=_finalize_sumneko
 )
 
 bicep = _Archive(
     "bicep",
-    cache() / "bicep-langserver",
-    _urls["bicep"],
     "zip",
+    _urls["bicep"],
+    cache(),
+    extra_path="bicep-langserver",
     finalize=_finalize_bicep,
 )
 
 rust_analuzer = _Archive(
     "rust-analyzer",
-    local_bin() / "rust-analyzer",
-    _urls["rust-analyzer"],
     "gz",
+    _urls["rust-analyzer"],
+    local_bin(),
     finalize=make_executable,
 )
 
 omnisharp = _Archive(
     "omnisharp",
-    cache() / "omnisharp",
-    _urls["omnisharp"],
     "zip",
+    _urls["omnisharp"],
+    cache(),
+    extra_path="omnisharp",
     finalize=_finalize_omnisharp,
 )
 
 elixirls = _Archive(
     "elixirls",
-    cache() / "elixirls",
-    _urls["elixirls"],
     "zip",
+    _urls["elixirls"],
+    cache(),
+    extra_path="elixirls",
     finalize=_finalize_elixirls,
+)
+
+clojure_lsp = _Archive(
+    "clojure_lsp",
+    "zip",
+    _urls["clojure_lsp"],
+    local_bin(),
+    finalize=_make_exec("clojure-lsp")
 )
