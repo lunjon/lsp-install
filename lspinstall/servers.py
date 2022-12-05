@@ -1,8 +1,4 @@
-from .source import npm
-from .source import go
-from .source import pip
-from .source import archive
-
+from .source import archive, go, npm, pip
 
 lang_servers = [
     archive.sumneko,

@@ -6,12 +6,14 @@ import zipfile
 from pathlib import Path
 from shutil import copyfileobj
 from typing import Callable, Literal, Optional
+from urllib.parse import urljoin
 
 import requests
 
-from .base import Source
-from lspinstall.util import make_executable
 from lspinstall import cache, local_bin
+from lspinstall.util import make_executable
+
+from .base import Source
 
 FinalizeFunc = Callable[[Path], None]
 ArchiveType = Literal["zip", "tar.gz", "gz"]
@@ -133,41 +135,41 @@ def _finalize_omnisharp(dest: Path):
 def _make_exec(ext: str):
     def f(dest: Path):
         make_executable(dest / ext)
+
     return f
 
 
-_urls = {
-    "sumneko": "https://github.com/sumneko/lua-language-server/releases/download/3.5.5/lua-language-server-3.5.5-linux-x64.tar.gz",
-    "bicep": "https://github.com/Azure/bicep/releases/download/v0.8.9/bicep-langserver.zip",
-    # TODO: use rustup and add as component (added as of rust 1.64)
-    "rust-analyzer": "https://github.com/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz",
-    "omnisharp": "https://github.com/OmniSharp/omnisharp-roslyn/releases/download/v1.38.2/omnisharp-linux-x64.zip",
-    "elixirls": "https://github.com/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls.zip",
-    "clojure_lsp": "https://github.com/clojure-lsp/clojure-lsp/releases/download/2022.11.03-00.14.57/clojure-lsp-native-static-linux-amd64.zip",
-}
+def _gh_url(path) -> str:
+    return urljoin("https://github.com", path)
+
 
 sumneko = _Archive(
     "sumneko",
     "tar.gz",
-    _urls["sumneko"],
+    _gh_url(
+        "/sumneko/lua-language-server/releases/download/3.5.5/lua-language-server-3.5.5-linux-x64.tar.gz"
+    ),
     cache(),
     extra_path="sumneko-lua",
-    finalize=_finalize_sumneko
+    finalize=_finalize_sumneko,
 )
 
 bicep = _Archive(
     "bicep",
     "zip",
-    _urls["bicep"],
+    _gh_url("/Azure/bicep/releases/download/v0.8.9/bicep-langserver.zip"),
     cache(),
     extra_path="bicep-langserver",
     finalize=_finalize_bicep,
 )
 
+# TODO: use rustup and add as component (added as of rust 1.64)
 rust_analuzer = _Archive(
     "rust-analyzer",
     "gz",
-    _urls["rust-analyzer"],
+    _gh_url(
+        "/rust-analyzer/rust-analyzer/releases/latest/download/rust-analyzer-x86_64-unknown-linux-gnu.gz"
+    ),
     local_bin(),
     finalize=make_executable,
 )
@@ -175,7 +177,9 @@ rust_analuzer = _Archive(
 omnisharp = _Archive(
     "omnisharp",
     "zip",
-    _urls["omnisharp"],
+    _gh_url(
+        "/OmniSharp/omnisharp-roslyn/releases/download/v1.38.2/omnisharp-linux-x64.zip"
+    ),
     cache(),
     extra_path="omnisharp",
     finalize=_finalize_omnisharp,
@@ -184,7 +188,7 @@ omnisharp = _Archive(
 elixirls = _Archive(
     "elixirls",
     "zip",
-    _urls["elixirls"],
+    _gh_url("/elixir-lsp/elixir-ls/releases/latest/download/elixir-ls.zip"),
     cache(),
     extra_path="elixirls",
     finalize=_finalize_elixirls,
@@ -193,7 +197,9 @@ elixirls = _Archive(
 clojure_lsp = _Archive(
     "clojure_lsp",
     "zip",
-    _urls["clojure_lsp"],
+    _gh_url(
+        "/clojure-lsp/clojure-lsp/releases/download/2022.11.03-00.14.57/clojure-lsp-native-static-linux-amd64.zip"
+    ),
     local_bin(),
-    finalize=_make_exec("clojure-lsp")
+    finalize=_make_exec("clojure-lsp"),
 )
